@@ -56,6 +56,15 @@ fzf_ollama_commands() {
   zle end-of-line
   zle reset-prompt
 
+  local ret=$?
+
+     # Check if a selection was made
+  if [ -z "$ZSH_OLLAMA_COMMANDS_USER_QUERY" ]; then
+    print
+    print -u1 "🚫 Nothing to search..."
+    return $ret
+  fi
+
   print
   print -u1 "👻Please wait..."
 
@@ -75,7 +84,6 @@ fzf_ollama_commands() {
   ZSH_OLLAMA_COMMANDS_RESPONSE=$(curl --silent "${ZSH_OLLAMA_URL}/api/chat" \
     -H "Content-Type: application/json" \
     -d "$ZSH_OLLAMA_COMMANDS_REQUEST_BODY")
-  local ret=$?
 
   # Clean the JSON response from the control characters
   ZSH_OLLAMA_COMMANDS_RESPONSE=$(echo "$ZSH_OLLAMA_COMMANDS_RESPONSE" | sed 's/[^[:print:]]//g')
