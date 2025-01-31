@@ -77,23 +77,22 @@ fzf_ollama_commands() {
     -d "$ZSH_OLLAMA_COMMANDS_REQUEST_BODY")
   local ret=$?
 
-  # trim response content newline
-  ZSH_OLLAMA_COMMANDS_SUGGESTION=$(echo $ZSH_OLLAMA_COMMANDS_RESPONSE | tr -d '\n\r' | tr -d '\0' | jq '.')
+  # Clean the JSON response from the control characters
+  ZSH_OLLAMA_COMMANDS_RESPONSE=$(echo "$ZSH_OLLAMA_COMMANDS_RESPONSE" | sed 's/[^[:print:]]//g')
   check_status
 
-  # collect suggestion commands from response content
-  ZSH_OLLAMA_COMMANDS_SUGGESTION=$(echo "$ZSH_OLLAMA_COMMANDS_SUGGESTION" | tr -d '\0' | jq -r '.message.content')
+  # Extract message content and convert single quotes to double quotes
+  ZSH_OLLAMA_COMMANDS_SUGGESTION=$(echo "$ZSH_OLLAMA_COMMANDS_RESPONSE" | \
+  jq -r '.message.content' | sed "s/'/\"/g")
   check_status
 
-  # attempts to extract suggestions from ZSH_OLLAMA_COMMANDS_SUGGESTION using jq.
-  # If jq fails or returns no output, displays an error message and exits.
-  # Otherwise, pipes the output to fzf for interactive selection
-  ZSH_OLLAMA_COMMANDS_SELECTED=$(echo $ZSH_OLLAMA_COMMANDS_SUGGESTION | tr -d '\0' | jq -r '.[]')
+  # Ensure valid JSON before processing
+  ZSH_OLLAMA_COMMANDS_SELECTED=$(echo "$ZSH_OLLAMA_COMMANDS_SUGGESTION" | jq -r 'fromjson | .[]')
   check_status
 
   tput cuu 1 # cleanup waiting message
 
-  ZSH_OLLAMA_COMMANDS_SELECTED=$(echo $ZSH_OLLAMA_COMMANDS_SUGGESTION | jq -r '.[]' | fzf --ansi --height=~10 --cycle)
+  ZSH_OLLAMA_COMMANDS_SELECTED=$(echo "$ZSH_OLLAMA_COMMANDS_SUGGESTION" | jq -r '.[]' | fzf --ansi --height=~10 --cycle)
   BUFFER=$ZSH_OLLAMA_COMMANDS_SELECTED
 
   zle end-of-line
